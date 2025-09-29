@@ -1,5 +1,3 @@
-library(debug)
-mtrace(split_punct)
 setwd("C:/Users/cheryl/AllRepoProjects/Firstrepogroup")
 a <- scan("shakespeare.txt",what="character",skip=83,nlines=196043-83,
           fileEncoding="UTF-8")
