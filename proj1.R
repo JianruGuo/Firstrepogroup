@@ -80,4 +80,23 @@ ranks <- rank(-word_counts,ties.method = "min")
 #take about 1000 most common words and save as vector "b"
 b <- b_unique[ranks <= 1000]
 
+#6a
+mlag <- 4
+
+#6b map the full token vector a to vocabulary b to produce M1
+M1 <- match(a, b)
+
+#6c
+#dimension of matrix锛?(n - mlag) x (mlag + 1)
+#Define build_M, which takes M1 and mlag and returns the shifted (lag) matrix M锛?
+build_M <- function(M1, mlag) {
+  n <- length(M1)
+  #initialize with NA_integer_ (integer NA), with n-mlag rows and mlag+1 columns
+  out <- matrix(NA_integer_, n - mlag, mlag + 1)
+  for (j in 0:mlag) {
+    out[, j + 1] <- M1[(1 + j):(n - mlag + j)]
+  }
+  out
+}
+M <- build_M(M1, mlag)
 
