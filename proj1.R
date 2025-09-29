@@ -78,13 +78,11 @@ ranks <- rank(-word_counts,ties.method = "min")
 #take about 1000 most common words and save as vector "b"
 b <- b_unique[ranks <= 1000]
 
-#6a
+#6a map the full token vector a to vocabulary b to produce M1
 mlag <- 4
-
-#6b map the full token vector a to vocabulary b to produce M1
 M1 <- match(a, b)
 
-#6c
+#6b
 #dimension of matrix锛?(n - mlag) x (mlag + 1)
 #Define build_M, which takes M1 and mlag and returns the shifted (lag) matrix M锛?
 build_M <- function(M1, mlag) {
@@ -98,7 +96,7 @@ build_M <- function(M1, mlag) {
 }
 M <- build_M(M1, mlag)
 
-#7
+#7 build next.word function
 next.word <- function(key, M, M1, w = rep(1, ncol(M) - 1)) {
   #If words are given, lowercase then match to vocabulary b; otherwise treat key as integer indices
   if (is.character(key)) {
@@ -165,7 +163,7 @@ select_start_token <- function(M1, b, start_word = NULL) {
     return(start_token)
 }
 
-#9 - Simulate sentences until full stop
+#9 simulate sentences until full stop
 simulate_sentence <- function(start_token, M, M1, b, mlag, w = rep(1, mlag)) {
   sentence_tokens <- as.integer(start_token)
   repeat {
