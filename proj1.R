@@ -100,60 +100,52 @@ M <- build_M(M1, mlag)
 
 #7
 next.word <- function(key, M, M1, w = rep(1, ncol(M) - 1)) {
+  #If words are given, lowercase then match to vocabulary b; otherwise treat key as integer indices
+  if (is.character(key)) {
+    key_tokens <- match(tolower(key), b)
+  } else {
+    key_tokens <- as.integer(key)
+  }
+  key_tokens <- key_tokens[!is.na(key_tokens)] #Remove NA
   
-  if (length(key) > mlag) {
-    key <- key[(length(key) - mlag + 1):length(key)]# If the length of key is too long, use the last mlag words.
+  if (!length(key_tokens)) {
+    candidates <- which(!b %in% c(",", ".", ";", "!", ":", "?"))
+    freqs <- tabulate(M1[!is.na(M1)], nbins = length(b))
+    return(sample(candidates, size = 1, prob = freqs[candidates]))
   }
   
-  current_length <- length(key)
- 
-  all_candidates <- integer(0)# initialize candidate words and weights
+  mlag <- ncol(M) - 1
+  key_tokens <- tail(key_tokens, n = min(length(key_tokens), mlag)) #tail(x, n) takes the last n elements
+  
+  all_candidates <- integer(0)
   all_weights <- numeric(0)
   
-
-  for (l in current_length:1) {
-    mc <- mlag - l + 1
-    me <- mlag  # match the end column
-    subM <- M[, mc:me, drop = FALSE]# get submatrices of M
+  for (i in seq_along(key_tokens)) {
+    mc <- mlag - i + 1            
+    key_tail <- tail(key_tokens, i)
+    subM <- M[, mc:mlag, drop = FALSE]
     
-    #transpose M to make the row of M match the row of key
-    key_subset <- key[(current_length - l + 1):current_length]
-    comparison_matrix <- t(subM) == key_subset
-    ii <- colSums(!comparison_matrix)
+    eq <- t(subM) == key_tail
+    ok <- which(colSums(!eq) == 0) 
     
-    matching_rows <- which(ii == 0 & is.finite(ii))#find rows that match key
-    
-    if (length(matching_rows) > 0) {
-      #get next word token
-      candidates <- M[matching_rows, mlag + 1]
-      candidates <- candidates[!is.na(candidates)]
-      
-      if (length(candidates) > 0) {
-        #calculate mixture weight
-        weight <- w[mlag - l + 1] / length(candidates)
-        weights <- rep(weight, length(candidates))
-        all_candidates <- c(all_candidates, candidates)
-        all_weights <- c(all_weights, weights)
+    if (length(ok)) {
+      next_tokens <- M[ok, mlag + 1]
+      next_tokens <- next_tokens[!is.na(next_tokens)]
+      if (length(next_tokens)) {
+        all_candidates <- c(all_candidates, next_tokens)
+        all_weights <- c(all_weights, rep(w[i] / length(next_tokens), length(next_tokens)))
       }
     }
   }
   
-  
-  if (length(all_candidates) == 0) {
-    # if no candidate word is found
-    valid_tokens <- M1[!is.na(M1)]
-    if (length(valid_tokens) > 0) {
-      return(sample(valid_tokens, 1))
-    } else {
-      return(1)  
-    }
+  if (!length(all_candidates)) {
+    candidates <- which(!b %in% c(",", ".", ";", "!", ":", "?"))
+    freqs <- tabulate(M1[!is.na(M1)], nbins = length(b))
+    return(sample(candidates, size = 1, prob = freqs[candidates]))
   }
   
-  # using the sample function to sample one token from this distribution
-  selected_index <- sample(1:length(all_candidates), 1, prob = all_weights)
-  return(all_candidates[selected_index])
+  sample(all_candidates, size = 1, prob = all_weights)
 }
-
 
 #8 select a single word token(but not punctuation) at random 
 select_start_token <- function(M1, b, start_word = NULL) {
