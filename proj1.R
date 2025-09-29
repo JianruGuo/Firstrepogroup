@@ -167,59 +167,19 @@ select_start_token <- function(M1, b, start_word = NULL) {
 
 #9 - Simulate sentences until full stop
 simulate_sentence <- function(start_token, M, M1, b, mlag, w = rep(1, mlag)) {
-  current_sequence <- start_token
-  sentence_tokens <- c(start_token)
-  
-  # Continue until we reach a full stop or max iterations
-  while (iteration < max_iterations) {
-    iteration <- iteration + 1
-    
-    # get next word using the next_word function
+  sentence_tokens <- as.integer(start_token)
+  repeat {
+    # only uses the last n=mlag tokens
+    current_sequence <- tail(sentence_tokens, n = mlag)
     next_token <- next.word(current_sequence, M, M1, w)
-    
-    # add to our sentence
     sentence_tokens <- c(sentence_tokens, next_token)
-    
-    # update current sequence (keep only last mlag tokens)
-    if (length(sentence_tokens) >= mlag) {
-      current_sequence <- sentence_tokens[(length(sentence_tokens) - mlag + 1):length(sentence_tokens)]
-    } else {
-      current_sequence <- sentence_tokens
-    }
-    
-    # check if we reached a full stop
-    if (b[next_token] == ".") {
-      cat("Full stop reached after", iteration, "iterations\n")
-      break
-    }
+    #compare words
+    if (b[sentence_tokens[length(sentence_tokens)]] == ".") break
   }
-    
-    # Convert tokens back to words
-    sentence_words <- b[sentence_tokens]
-    
-    # Format the sentence nicely
-    formatted_sentence <- format_sentence(sentence_words)
-    
-    return(list(
-      tokens = sentence_tokens,
-      words = sentence_words,
-      sentence = formatted_sentence,
-      length = length(sentence_tokens)
-    ))
+  return(sentence_tokens)
 }
-  
-  # main function to run the complete simulation
-run_shakespeare_simulator <- function(M, M1, b, mlag = 4, start_word = NULL) {
-  cat("=== Shakespeare Sentence Simulator ===\n")
-  start_token <- select_start_token(M1, b, start_word)# select starting token
-  result <- simulate_sentence(start_token, M, M1, b, mlag)# simulate sentence
-    
-  # print results
-  cat("\n=== Generated Sentence ===\n")
-  cat(result$sentence, "\n")
-  cat("\nSentence length:", result$length, "words\n")
-  cat("Word tokens:", paste(result$tokens, collapse = " "), "\n")
-    
-  return(result)
-}
-
+st <- select_start_token(M1,b)
+tokens <- simulate_sentence(st, M, M1, b, mlag)
+sentence_words <- b[tokens]
+sentence <- paste(sentence_words, collapse = " ")
+print(sentence)
