@@ -100,3 +100,136 @@ build_M <- function(M1, mlag) {
 }
 M <- build_M(M1, mlag)
 
+#7
+next.word <- function(key, M, M1, w = rep(1, ncol(M) - 1)) {
+  
+  if (length(key) > mlag) {
+    key <- key[(length(key) - mlag + 1):length(key)]# If the length of key is too long, use the last mlag words.
+  }
+  
+  current_length <- length(key)
+ 
+  all_candidates <- integer(0)# initialize candidate words and weights
+  all_weights <- numeric(0)
+  
+
+  for (l in current_length:1) {
+    mc <- mlag - l + 1
+    me <- mlag  # match the end column
+    subM <- M[, mc:me, drop = FALSE]# get submatrices of M
+    
+    #transpose M to make the row of M match the row of key
+    key_subset <- key[(current_length - l + 1):current_length]
+    comparison_matrix <- t(subM) == key_subset
+    ii <- colSums(!comparison_matrix)
+    
+    matching_rows <- which(ii == 0 & is.finite(ii))#find rows that match key
+    
+    if (length(matching_rows) > 0) {
+      #get next word token
+      candidates <- M[matching_rows, mlag + 1]
+      candidates <- candidates[!is.na(candidates)]
+      
+      if (length(candidates) > 0) {
+        #calculate mixture weight
+        weight <- w[mlag - l + 1] / length(candidates)
+        weights <- rep(weight, length(candidates))
+        all_candidates <- c(all_candidates, candidates)
+        all_weights <- c(all_weights, weights)
+      }
+    }
+  }
+  
+  
+  if (length(all_candidates) == 0) {
+    # if no candidate word is found
+    valid_tokens <- M1[!is.na(M1)]
+    if (length(valid_tokens) > 0) {
+      return(sample(valid_tokens, 1))
+    } else {
+      return(1)  
+    }
+  }
+  
+  # using the sample function to sample one token from this distribution
+  selected_index <- sample(1:length(all_candidates), 1, prob = all_weights)
+  return(all_candidates[selected_index])
+}
+
+
+#8 select a single word token(but not punctuation) at random 
+select_start_token <- function(M1, b, start_word = NULL) {
+    # define punctuation marks in order to exclude them
+    punct_marks <- c(",", ".", ";", "!", ":", "?")
+    
+    # get tokens that are non-NA and not punctuation
+    valid_tokens <- M1[!is.na(M1) & !(b[M1] %in% punct_marks)]
+    
+    if (length(valid_tokens) == 0) {
+      stop("No valid starting tokens found")
+    }
+    
+    start_token <- sample(valid_tokens, 1)
+    cat("Using random starting word: '", b[start_token], "' (token:", start_token, ")\n", sep = "")
+    
+    return(start_token)
+}
+
+#9 - Simulate sentences until full stop
+simulate_sentence <- function(start_token, M, M1, b, mlag, w = rep(1, mlag)) {
+  current_sequence <- start_token
+  sentence_tokens <- c(start_token)
+  
+  # Continue until we reach a full stop or max iterations
+  while (iteration < max_iterations) {
+    iteration <- iteration + 1
+    
+    # get next word using the next_word function
+    next_token <- next.word(current_sequence, M, M1, w)
+    
+    # add to our sentence
+    sentence_tokens <- c(sentence_tokens, next_token)
+    
+    # update current sequence (keep only last mlag tokens)
+    if (length(sentence_tokens) >= mlag) {
+      current_sequence <- sentence_tokens[(length(sentence_tokens) - mlag + 1):length(sentence_tokens)]
+    } else {
+      current_sequence <- sentence_tokens
+    }
+    
+    # check if we reached a full stop
+    if (b[next_token] == ".") {
+      cat("Full stop reached after", iteration, "iterations\n")
+      break
+    }
+  }
+    
+    # Convert tokens back to words
+    sentence_words <- b[sentence_tokens]
+    
+    # Format the sentence nicely
+    formatted_sentence <- format_sentence(sentence_words)
+    
+    return(list(
+      tokens = sentence_tokens,
+      words = sentence_words,
+      sentence = formatted_sentence,
+      length = length(sentence_tokens)
+    ))
+}
+  
+  # main function to run the complete simulation
+run_shakespeare_simulator <- function(M, M1, b, mlag = 4, start_word = NULL) {
+  cat("=== Shakespeare Sentence Simulator ===\n")
+  start_token <- select_start_token(M1, b, start_word)# select starting token
+  result <- simulate_sentence(start_token, M, M1, b, mlag)# simulate sentence
+    
+  # print results
+  cat("\n=== Generated Sentence ===\n")
+  cat(result$sentence, "\n")
+  cat("\nSentence length:", result$length, "words\n")
+  cat("Word tokens:", paste(result$tokens, collapse = " "), "\n")
+    
+  return(result)
+}
+
