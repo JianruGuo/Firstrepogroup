@@ -1,7 +1,7 @@
 #Zixuan Qiu s2777279
 #Team member contribution:
 #Zixuan Qiu did the pre-processing of vector 'a' and create vector 'b' which contains around 1000 most common words from cleaned 'a' (section 4 and 5). 
-setwd("C:/Users/cheryl/AllRepoProjects/Firstrepogroup")
+#setwd("C:/Users/cheryl/AllRepoProjects/Firstrepogroup")
 a <- scan("shakespeare.txt",what="character",skip=83,nlines=196043-83,
           fileEncoding="UTF-8")
 
