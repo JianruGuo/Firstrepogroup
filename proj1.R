@@ -86,8 +86,9 @@ mlag <- 4
 M1 <- match(a, b)
 
 #6b
-#dimension of matrix锛?(n - mlag) x (mlag + 1)
-#Define build_M, which takes M1 and mlag and returns the shifted (lag) matrix M锛?
+#dimension of matrix: (n - mlag) x (mlag + 1)
+#mlag is 
+#Define build_M, which takes M1 and mlag and returns the shifted (lag) matrix M
 build_M <- function(M1, mlag) {
   n <- length(M1)
   #initialize with NA_integer_ (integer NA), with n-mlag rows and mlag+1 columns
@@ -100,6 +101,8 @@ build_M <- function(M1, mlag) {
 M <- build_M(M1, mlag)
 
 #7 build next.word function
+#Here we assume the "key" parameter is in the form of token(s) because the next function that we wrote to select a single word automatically returns a token.
+#But this function also works when you want to use a specific word, such as "romeo" as "key", as long as you use the match() function in R to find the corresponding token in b.
 next.word <- function(key, M, M1, w = rep(1, ncol(M)-1)) {
   key_len <- length(key)#the length of the key sequence
   
@@ -108,7 +111,7 @@ next.word <- function(key, M, M1, w = rep(1, ncol(M)-1)) {
     key <- tail(key, mlag)
     key_len <- mlag
   }
-  #initialize  vectors for candidate next tokens and their probabilities
+  #initialize vectors for candidate next tokens and their probabilities
   u_all <- c()
   p_all <- c()
   
@@ -120,28 +123,24 @@ for (m in 1:key_len) {
   
   if (length(match_rows) > 0) {
     u <- M[match_rows, key_len+1, drop = TRUE]
-    u <- u[!is.na(u)]#remove missing values
-    
-    #remove punctuation tokens from candidates bcause M and M1 still base on original b with punctuations
-    #words_u <- b[u]
-    #valid_idx <- words_u %in% b_no_punct
-    #u <- u[valid_idx]
+    u <- u[!is.na(u)]#remove NA values
     
     if (length(u) > 0) {
       #if candidate exists, assign corresponding probabilities proportional to the weight
       prob <- rep(w[m] / length(u), length(u))
-      u_all <- c(u_all, u)
+      #update u_all and p_all
+      u_all <- c(u_all, u) 
       p_all <- c(p_all, prob)
     }
   }
 }
+  #Considering a situation that we cannot find one corresponding next word (i.e. u_all vector contains no element), we then sample a common word according to its occurrence probability in the text.
   if (length(u_all) == 0) {
-    #if no candidates were found, go back to sampling from the global frequency
     tab <- table(M1)#count the word frequency
-    valid_tokens <- as.integer(names(tab))[b[as.integer(names(tab))] %in% b_no_punct]
-    probs <- as.numeric(tab)[b[as.integer(names(tab))] %in% b_no_punct]
+    valid_tokens <- as.integer(names(tab))[b[as.integer(names(tab))] %in% b]
+    probs <- as.numeric(tab)[b[as.integer(names(tab))] %in% b]
     probs <- probs / sum(probs)
-    return(sample(valid_tokens, 1, prob = probs))
+    return(sample(valid_tokens, 1, prob = probs)) #the sum of probabilities may doesn't equal to 1. But R will automatically normalize them internally.
   }
   
   
@@ -183,4 +182,4 @@ st <- select_start_token(M1,b)
 tokens <- simulate_sentence(st, M, M1, b, mlag)
 sentence_words <- b[tokens]
 sentence <- paste(sentence_words, collapse = " ")
-print(sentence)
+cat("Here is the simulated sentence:",sentence)
