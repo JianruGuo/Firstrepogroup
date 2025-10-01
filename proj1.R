@@ -184,20 +184,3 @@ tokens <- simulate_sentence(st, M, M1, b, mlag)
 sentence_words <- b[tokens]
 sentence <- paste(sentence_words, collapse = " ")
 print(sentence)
-#8 select a single word token(but not punctuation) at random 
-select_start_token <- function(M1, b, start_word = NULL) {
-    # define punctuation marks in order to exclude them
-    punct_marks <- c(",", ".", ";", "!", ":", "?")
-    
-    # get word tokens that are non-NA and not punctuation
-    valid_tokens <- M1[!is.na(M1) & !(b[M1] %in% punct_marks)]
-    
-    if (length(valid_tokens) == 0) {
-      stop("No valid starting tokens found")
-    }
-    # select a single(sample size is 1) common word token(but not punctuation) at random
-    start_token <- sample(valid_tokens, 1) 
-    cat("Using random starting word: '", b[start_token], "' (token:", start_token, ")\n", sep = "")
-    
-    return(start_token)
-}
