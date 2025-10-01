@@ -30,7 +30,6 @@ for (i in open_bracket_idx) {
 #take the opposite logical value of all words, keep the words which are TRUE, i.e. removing stage directions
 a_clean <- a[!remove_idx]
 
-
 #4b remove fully upper case words and numerals
 words <- a_clean
 #create logical vector; TRUE for fully upper case words except "I" and "A", FALSE for others
@@ -40,11 +39,9 @@ is_number <- grepl("^[0-9]+$", words)
 #remove fully upper case words and numerals simultaneously to avoid unmatched index when remove them separately
 a_remain <- words[!(is_upper | is_number)] 
 
-
 #4c
 #use gsub function to remove "-" and "_", i.e. replace "-" and "_" with ""
 a <- gsub("[-_]","",a_remain)
-
 
 #4d separate punctuation as new entries
 split_punct <- function(a, punct_vec) {
@@ -85,31 +82,32 @@ ranks <- rank(-word_counts,ties.method = "min")
 #take about 1000 most common words and save as vector "b"
 b <- b_unique[ranks <= 1000]
 
+
 #6a map the full token vector a to vocabulary b to produce M1
+#mlag is defined to be 4
 mlag <- 4
 M1 <- match(a, b)
 
-#6b
-#dimension of matrix: (n - mlag) x (mlag + 1)
-#mlag is defined to be 4
-#Define build_M, which takes M1 and mlag and returns the shifted (lag) matrix M
+#6b define build_M() function, which takes M1 and mlag and returns the shifted (lag) matrix M
+#dimension of matrix M: (n - mlag) x (mlag + 1)
 build_M <- function(M1, mlag) {
   n <- length(M1)
-  #initialize with NA_integer_ (integer NA), with n-mlag rows and mlag+1 columns
+  #initialize M with NA_integer_ (integer NA)
   out <- matrix(NA_integer_, n - mlag, mlag + 1)
   for (j in 0:mlag) {
+    out[, j + 1] <- M1[(1 + j):(n - mlag + j)] 
     # the elements in the 1st column of the output matrix should be the [1:(n-mlag)] elements of M1
     # the elements in the 2nd column of the output matrix should be the [2:(n-mlag+1)] elements of M1
     # the elements in the kth column of the output matrix should be the [k:(n-mlag+k)] elements of M1
-    out[, j + 1] <- M1[(1 + j):(n - mlag + j)] 
   }
   out
 }
 M <- build_M(M1, mlag)
 
+
 #7 build next.word function
 #Here we assume the "key" parameter is in the form of token(s) because the next function that we wrote to select a single word automatically returns a token.
-#But this function also works when you want to use a specific word, such as "romeo" as "key", as long as you use the match() function in R to find the corresponding token in b.
+#But this function also works well when you want to use a specific word, such as "romeo" as "key", as long as you use the match() function to find its corresponding token in b at first.
 next.word <- function(key, M, M1, w = rep(1, ncol(M)-1)) {
   key_len <- length(key)#the length of the key sequence
   
@@ -125,34 +123,34 @@ next.word <- function(key, M, M1, w = rep(1, ncol(M)-1)) {
 for (m in 1:key_len) {
   subM <- M[, m:key_len, drop = FALSE] #the submatrix that contains relevant columns
   
-  ii <- colSums(!(t(subM) == key[m:key_len]))
-  match_rows <- which(ii == 0 & is.finite(ii))#match key to the corresponding columns in M
+  ii <- colSums(!(t(subM) == key[m:key_len])) #the result of "!(t(subM) == key[m:key_len])" is a logical matrix. If one column of its only contains "False" (i.e. the sum of this column equals to 0), this column is a perfect match to the corresponding key.
+  match_rows <- which(ii == 0 & is.finite(ii)) #obtain the indices of perfect-match columns, i.e. the indices of rows of matrix M that have a perfect match.
   
   if (length(match_rows) > 0) {
     u <- M[match_rows, key_len+1, drop = TRUE]
-    u <- u[!is.na(u)]#remove NA values
+    u <- u[!is.na(u)] #remove NA
     
     if (length(u) > 0) {
       #if candidate exists, assign corresponding probabilities proportional to the weight
       prob <- rep(w[m] / length(u), length(u))
       #update u_all and p_all
       u_all <- c(u_all, u) 
-      p_all <- c(p_all, prob)
+      p_all <- c(p_all, prob) #the sum of probabilities here may not equal to 1. But R will automatically normalize them internally while using sample() function.
     }
   }
 }
   #Considering a situation that we cannot find one corresponding next word (i.e. u_all vector contains no element), we then sample a common word according to its occurrence probability in the text.
   if (length(u_all) == 0) {
-    tab <- table(M1)#count the word frequency
+    tab <- table(M1) #count the word frequency
     valid_tokens <- as.integer(names(tab))[b[as.integer(names(tab))] %in% b]
     probs <- as.numeric(tab)[b[as.integer(names(tab))] %in% b]
     probs <- probs / sum(probs)
-    return(sample(valid_tokens, 1, prob = probs)) #the sum of probabilities may doesn't equal to 1. But R will automatically normalize them internally.
+    return(sample(valid_tokens, 1, prob = probs)) 
   }
-  
   
   return(sample(u_all, 1, prob = p_all))
 }
+
 
 #8 select a single word token(but not punctuation) at random 
 select_start_token <- function(M1, b, start_word = NULL) {
@@ -171,6 +169,7 @@ select_start_token <- function(M1, b, start_word = NULL) {
     return(start_token)
 }
 
+
 #9 simulate sentences until full stop
 simulate_sentence <- function(start_token, M, M1, b, mlag, w = rep(1, mlag)) {
   sentence_tokens <- as.integer(start_token)
@@ -179,13 +178,13 @@ simulate_sentence <- function(start_token, M, M1, b, mlag, w = rep(1, mlag)) {
     current_sequence <- tail(sentence_tokens, n = mlag)
     next_token <- next.word(current_sequence, M, M1, w)
     sentence_tokens <- c(sentence_tokens, next_token)
-    #compare and find the full stop, then break the loop
+    #compare and try to find the full stop
     if (b[sentence_tokens[length(sentence_tokens)]] == ".") break
   }
   return(sentence_tokens)
 }
-st <- select_start_token(M1,b) #the token we generated by using simulate_sentence() function
-tokens <- simulate_sentence(st, M, M1, b, mlag) #simulate sentence by enter "st" as the first variable in this function
-sentence_words <- b[tokens]#transfer the token sequence back to b to find corresponding words
+st <- select_start_token(M1,b) #select a token at random
+tokens <- simulate_sentence(st, M, M1, b, mlag) #simulate sentence by enter "st" as the first variable in simulate_sentence() function
+sentence_words <- b[tokens] #transfer the token sequence back to b to find corresponding words
 sentence <- paste(sentence_words, collapse = " ")
-cat("Here is the simulated sentence:",sentence) #print the simulated sentence
+cat("Here is the simulated sentence:",sentence) #print the simulated sentence nicely
