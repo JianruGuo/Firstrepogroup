@@ -8,7 +8,7 @@ h <- rep(1:n, times = sample(1:5, n, replace = TRUE))[1:n]
 #We then use the result of sample() as the "times" parameter of rep() to assign household ID to each person, i.e. repeat each household ID according to its sampled size.
 #After repeating, the result may be more than 1000 since sizes are random between 1 and 5.We only keep the first 1000 people.
 
-#Then we moved to construct a function get.net(beta,h,nc) to show the possible social contact network among individuals in the population.
+#Then we move to construct a function get.net(beta,h,nc) to show the possible social contact network among individuals in the population.
 #get.net(beta,h,nc) takes the "sociability" parameter vector "beta" (length of "beta" should be n), the household belonging vector "h" and the average number of contacts per person "nc" (here we set nc to 15) as inputs.
 #get.net(beta,h,nc) will return a list that indicates the indices of the regular (non-household) contacts of each person.
 #the probability of having a link between person i and person j is calculated by "nc*beta[i]*beta[j]/((mean of beta)^2*(n-1))".
@@ -61,7 +61,7 @@ get.net <- function(beta,h,nc = 15){
     l[[m]]<-c(which(R[m,]==rep(1,n)))
   }
   
-  #return list "l"---the ith element of which is a vector of the indices of the regular (non-household) contacts of person i; "integer(0)" means the person have no contact.
+  #return list "l"---the ith element of which is a vector of the indices of the regular (non-household) contacts of person i; "integer(0)" means this person has no contact.
   return(l)
 }
 
