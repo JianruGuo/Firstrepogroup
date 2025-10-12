@@ -1,3 +1,24 @@
+#Contribution:
+# Zixuan Qiu s2777279: Question3, 34%
+#
+#
+# --------------------------------------------------------------------
+# GitHub Link: 
+# --------------------------------------------------------------------
+# SEIR Epidemic Model with Household and Network Structure
+# ---------------------------------------------------------------------
+# This code implements a SEIR (Susceptible-Exposed-Infected-Recovered)
+# epidemic model that incorporates social structure through:
+#   - Households: people living together
+#   - Contact networks: regular network of contacts
+#   - Random mixing: Irrespective of household or regular network relations
+# ---------------------------------------------------------------------
+# Structure:
+#
+# nseir: Simulate SEIR epidemic with household and network structure
+#
+
+
 #Assuming the population size n = 1000 and the maximum household size is 5
 n<-1000
 
@@ -64,4 +85,117 @@ get.net <- function(beta,h,nc = 15){
   #return list "l"---the ith element of which is a vector of the indices of the regular (non-household) contacts of person i; "integer(0)" means this person has no contact.
   return(l)
 }
+
+
+
+# nseir function:
+# Arguments:
+#   beta      - sociability parameter for each person
+#   h         - household ID for each person
+#   alink     - list of contact indices for each person
+#   alpha     - infection probabilities [household, contacts, random mixing]
+#   delta     - daily probability E->I (default 0.2)
+#   gamma     - daily probability I->R (default 0.4)
+#   nc        - average contacts per person (default 15)
+#   nt        - days to simulate (default 100)
+#   pinf      - initial infection proportion (default 0.005)
+#
+# Returns:
+#   List of daily counts: S, E, I, R, and time vector t
+#
+# Process:
+#   Each day: record counts, transition states (E->I, I->R), then spread
+#   infection via households, contacts, and random mixing
+
+nseir <- function(beta,h,alink,alpha=c(.1,.01,.01),
+                  delta=.2,gamma=.4,nc=15, nt = 100,pinf = .005){
+  n <- length(beta)
+  beta_bar <- mean(beta)
+  
+  # Extract infection probabilities
+  alpha_h <- alpha[1]  # household
+  alpha_c <- alpha[2]  # contacts
+  alpha_r <- alpha[3]  # random mixing
+  
+  # Initialize states: 1=S, 2=E, 3=I, 4=R
+  # All people are susceptible(S=1) at the beginning
+  state <- rep(1, n)
+  
+  # Randomly select pinf proportion to start infected (state change to 3)
+  # Use max() to ensure at least 1 infected
+  n_initial <- max(1, round(n * pinf))
+  initial_infected <- sample(n, n_initial)
+  state[initial_infected] <- 3
+  
+  # Storage for daily counts of all states
+  S <- numeric(nt)
+  E <- numeric(nt)
+  I <- numeric(nt)
+  R <- numeric(nt)
+  
+  day <- 1
+  while (day <= nt) {
+    # main loop: Record current state counts
+    S[day] <- sum(state == 1)
+    E[day] <- sum(state == 2)
+    I[day] <- sum(state == 3)
+    R[day] <- sum(state == 4)
+    
+    u <- runif(n)
+    
+    # a copy of current state
+    new_state <- state
+    
+    # state transitions using logical indexing
+    new_state[state == 2 & u < delta] <- 3   # E -> I
+    new_state[state == 3 & u < gamma] <- 4   # I -> R
+    
+    infected_idx <- which(state == 3)
+    i_idx <- 1
+    
+    
+    # Process infections (S -> E)
+    # Need to loop through infected individuals
+    while (i_idx <= length(infected_idx)) {
+      i <- infected_idx[i_idx]
+      
+      # 1. Household infections
+      # find the infectious people who live in the same household as person i 
+      household_susceptible <- which(h == h[i] & state == 1 & (1:n) != i)
+      if (length(household_susceptible) > 0) {
+        u_h <- runif(length(household_susceptible))
+        new_state[household_susceptible[u_h < alpha_h]] <- 2
+      }
+      
+      # 2. Network contact infections
+      # find the contacts of person i, who are also infectious
+      contacts_i <- alink[[i]]
+      
+      if (length(contacts_i) > 0) {
+        u_c <- runif(length(contacts_i))
+        susceptible_contacts <- contacts_i[state[contacts_i] == 1]
+        if (length(susceptible_contacts) > 0) {
+          u_c_sub <- runif(length(susceptible_contacts))
+          new_state[susceptible_contacts[u_c_sub < alpha_c]] <- 2
+        }
+      }
+      
+      # 3. Random mixing infections
+      susceptible_idx <- which(state == 1)
+      if (length(susceptible_idx) > 0) {
+        p_infect <- (alpha_r * nc * beta[i] * beta[susceptible_idx]) / 
+          (beta_bar^2 * (n - 1))
+        u_r <- runif(length(susceptible_idx))
+        new_state[susceptible_idx[u_r < p_infect]] <- 2
+      }
+      i_idx <- i_idx + 1
+    }
+    state <- new_state
+    day <- day + 1
+  }
+  return(list(S = S, E = E, I = I, R = R, t = 1:nt))
+}
+
+
+
 
