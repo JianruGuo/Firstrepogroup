@@ -147,8 +147,8 @@ nseir <- function(beta,h,alink,alpha=c(.1,.01,.01),
     new_state <- state
     
     # state transitions using logical indexing
-    new_state[state == 2 & u < delta] <- 3   # E -> I
-    new_state[state == 3 & u < gamma] <- 4   # I -> R
+    new_state[state == 2 & u < gamma] <- 3   # E -> I
+    new_state[state == 3 & u < delta] <- 4   # I -> R
     
     infected_idx <- which(state == 3)
     i_idx <- 1
