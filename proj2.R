@@ -1,5 +1,6 @@
 #Contribution:
 # Zixuan Qiu s2777279: Question3, 34%
+#Jianru Guo s2806788: Question 4,5
 #
 #
 # --------------------------------------------------------------------
@@ -195,6 +196,86 @@ nseir <- function(beta,h,alink,alpha=c(.1,.01,.01),
   }
   return(list(S = S, E = E, I = I, R = R, t = 1:nt))
 }
+
+#Visualize the SEIR epidemic simulation :
+#show the distribution of beta: indicate how socially active different people are
+#show the time evolution of the epidemic: indicate how the numbers of each status change over time
+#compare four versions of SEIR model 
+
+#generate one random number between 0 and 1 for each person
+beta <- runif(n, 0, 1)
+# generate the list that gives the indices of ith regular contacts
+alink <- get.net(beta, h, nc = 15)
+# generate a list containing time series vectors for S, E, I, R, t 
+epi <- nseir(beta, h, alink)
+
+# Full model
+epi_full <- nseir(beta, h, alink, alpha = c(0.1, 0.01, 0.01))
+
+# only Random-mixing
+epi_random <- nseir(beta, h, alink, alpha = c(0, 0, 0.04))
+
+# full model with Constant beta
+beta_const <- rep(mean(beta), n)
+epi_const <- nseir(beta_const, h, alink, alpha = c(0.1, 0.01, 0.01))
+
+# Constant bet + Random mixing
+epi_const_random <- nseir(beta_const, h, alink, alpha = c(0, 0, 0.04))
+
+#add the sociability vector beta into the result list to draw the histogram 
+epi$beta <- beta 
+
+epi_full$beta <- beta
+epi_random$beta <- beta
+epi_const$beta <- beta_const
+epi_const_random$beta <- beta_const
+
+
+plot_nseir<- function(epi, main = "SEIR epidemic dynamics") {
+  #first set up the plotting window
+  #par(mfrow = c(1, 2), mar = c(4, 4, 2, 1))
+  
+  #left panel is the histogram of the sociability distribution beta
+  #in this plot, flat histogram represents relatively mixed sociability
+  #narrow histogram indicates relatively similar sociability
+  hist(epi$beta,
+       breaks = 20, col = "skyblue",#number of histogram bins and the color
+       xlab = expression(beta),#x-axis
+       main = "Distribution of sociability (β)",#title
+       border = "white")#remove bar borders
+  box()#draw box around the plot
+  
+  #right panel: SEIR time series dynamics
+  #This plot shows how the epidemic evolves in the population( with the number of S, E, I, R over the time period)
+  ymax <- max(epi$S, epi$E, epi$I, epi$R)
+  #first plot the curve for S
+  plot(epi$t, epi$S, type = "l", lwd = 2, col = "black",
+       ylim = c(0, ymax), xlab = "Day", ylab = "Number of individuals",
+       main = main)
+  #add E, I, R into the plot with different colors
+  lines(epi$t, epi$E, lwd = 2, col = "blue")
+  lines(epi$t, epi$I, lwd = 2, col = "red")
+  lines(epi$t, epi$R, lwd = 2, col = "darkgreen")
+  
+  legend("right",
+         legend = c("S (Susceptible)", "E (Exposed)",
+                    "I (Infectious)", "R (Recovered)"),
+         col = c("black", "blue", "red", "darkgreen"),
+         lwd = 2, bty = "n")
+}
+plot_nseir(epi)
+#plot 4 scenarios next to each other
+par(mfcol = c(2, 4), mar = c(4, 4, 2, 1))  
+plot_nseir(epi_full, main = "1. Full model")
+plot_nseir(epi_random, main = "2. Random mixing only")
+plot_nseir(epi_const, main = "3. Constant β, structured")
+plot_nseir(epi_const_random, main = "4. Constant β + random mixing")
+
+
+#Comparing model 1 with model 2, model 3 with model 4, the inclusion of household and network structure slow down the spread of infection. 
+#Households and network structure separate people in groups that limiting the opportunity for the epidemic to spread.
+#For random mixing, anyone in the population can be contacted by an infectious person, so the transmission is faster, which increase the epidemic peak.
+#So considering househode and network structure would make predicted epidemic grows slower with smaller epidemic peak than considering only random mixing.
 
 
 
