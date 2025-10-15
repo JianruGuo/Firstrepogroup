@@ -18,8 +18,7 @@
 # Fengyu Shen s2798951: Built household assignments & contact networks (~33%)
 # Jianru Guo s2806788: Visualization and scenario comparison (~33%)
 
-# GitHub Link: 
-# --------------------------------------------------------------------
+# GitHub Link: https://github.com/JianruGuo/Firstrepogroup.git
 
 
 
