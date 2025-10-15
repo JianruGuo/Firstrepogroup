@@ -7,7 +7,7 @@
 # of epidemics.
 
 # Code Structure Overview:
-# 1. Initialize population: set total size n, assign individuals to households (h) with random sizes.
+# 1. Initialize population: set total size n, assign individuals to households h with random sizes.
 # 2. Build contact network: use get.net() to create non-household social links based on sociability beta.
 # 3. Run SEIR simulation: use nseir() to model daily transitions (S→E→I→R) through household, contact, and random mixing infections.
 # 4. Visualize results: use plot_nseir() to show sociability distribution and SEIR dynamics.
@@ -154,16 +154,12 @@ nseir <- function(beta,h,alink,alpha=c(.1,.01,.01),
     
     u <- runif(n)
     
-    # a copy of current state
-    new_state <- state
-    
     # state transitions using logical indexing
-    new_state[state == 2 & u < gamma] <- 3   # E -> I
-    new_state[state == 3 & u < delta] <- 4   # I -> R
+    state[state == 2 & u < gamma] <- 3   # E -> I
+    state[state == 3 & u < delta] <- 4   # I -> R
     
     infected_idx <- which(state == 3)
     i_idx <- 1
-    
     
     # Process infections (S -> E)
     # Need to loop through infected individuals
@@ -175,7 +171,7 @@ nseir <- function(beta,h,alink,alpha=c(.1,.01,.01),
       household_susceptible <- which(h == h[i] & state == 1 & (1:n) != i)
       if (length(household_susceptible) > 0) {
         u_h <- runif(length(household_susceptible))
-        new_state[household_susceptible[u_h < alpha_h]] <- 2
+        state[household_susceptible[u_h < alpha_h]] <- 2
       }
       
       # 2. Network contact infections
@@ -186,7 +182,7 @@ nseir <- function(beta,h,alink,alpha=c(.1,.01,.01),
         susceptible_contacts <- contacts_i[state[contacts_i] == 1]
         if (length(susceptible_contacts) > 0) {
           u_c_sub <- runif(length(susceptible_contacts))
-          new_state[susceptible_contacts[u_c_sub < alpha_c]] <- 2
+          state[susceptible_contacts[u_c_sub < alpha_c]] <- 2
         }
       }
       
@@ -196,11 +192,10 @@ nseir <- function(beta,h,alink,alpha=c(.1,.01,.01),
         p_infect <- (alpha_r * nc * beta[i] * beta[susceptible_idx]) / 
           (beta_bar^2 * (n - 1))
         u_r <- runif(length(susceptible_idx))
-        new_state[susceptible_idx[u_r < p_infect]] <- 2
+        state[susceptible_idx[u_r < p_infect]] <- 2
       }
       i_idx <- i_idx + 1
     }
-    state <- new_state
     day <- day + 1
   }
   return(list(S = S, E = E, I = I, R = R, t = 1:nt))
