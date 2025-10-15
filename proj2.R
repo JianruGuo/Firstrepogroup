@@ -1,40 +1,42 @@
-#Contribution:
-# Zixuan Qiu s2777279: 
-# Question3, 34%
-# Fengyu Shen s2798951: 
-# build vector "h" to show which household each person belongs to and get.net(beta,h,nc) funtion to return a list that indicates the indices of the regular (non-household) contacts of each person. （~33%）
+# Background:
+# This code implements a socially structured SEIR (Susceptible–Exposed–Infectious–Recovered) epidemic model that extends the basic 
+# SEIR framework by incorporating household and network-based contact structures. Each individual belongs to a household and has a 
+# set of regular social contacts, making infection more likely within these groups than through random mixing. The model simulates 
+# epidemic dynamics over time based on parameters governing infection, exposure, and recovery rates. It enables comparison between 
+# scenarios with and without social structure to study how household clustering and contact networks influence the spread and size 
+# of epidemics.
 
-#
-# --------------------------------------------------------------------
+# Code Structure Overview:
+# 1. Initialize population: set total size n, assign individuals to households (h) with random sizes.
+# 2. Build contact network: use get.net() to create non-household social links based on sociability beta.
+# 3. Run SEIR simulation: use nseir() to model daily transitions (S→E→I→R) through household, contact, and random mixing infections.
+# 4. Visualize results: use plot_nseir() to show sociability distribution and SEIR dynamics.
+# 5. Compare scenarios and interpret: analyze how household and network structures affect epidemic spread versus random mixing.
+
+# Contribution of each group member:
+# Zixuan Qiu s2777279: Implemented SEIR simulation (nseir) (~33%)
+# Fengyu Shen s2798951: Built household assignments & contact networks (~33%)
+# Jianru Guo s2806788: Visualization and scenario comparison (~33%)
+
 # GitHub Link: 
 # --------------------------------------------------------------------
-# SEIR Epidemic Model with Household and Network Structure
-# ---------------------------------------------------------------------
-# This code implements a SEIR (Susceptible-Exposed-Infected-Recovered)
-# epidemic model that incorporates social structure through:
-#   - Households: people living together
-#   - Contact networks: regular network of contacts
-#   - Random mixing: Irrespective of household or regular network relations
-# ---------------------------------------------------------------------
-# Structure:
-#
-# nseir: Simulate SEIR epidemic with household and network structure
-#
+
 
 
 #Assuming the population size n = 1000 and the maximum household size is 5
 n<-1000
 
 #First, we need to create a vector "h" (length of h = n) to show which household each person belongs to.
-set.seed(111) #use set.seed() function to make sure every time we run this code, we will get the same "h"
+#use set.seed() function to make sure every time we run this code, we will get the same "h"
+set.seed(111) 
 h <- rep(1:n, times = sample(1:5, n, replace = TRUE))[1:n]
-#sample() is used to randomly get 1000 house sizes which ranges from 1 to 5 based on uniform distribution, i.e. the first element of "h" means the first household size...
-#We then use the result of sample() as the "times" parameter of rep() to assign household ID to each person, i.e. repeat each household ID according to its sampled size.
+#sample() is used to randomly get 1000 house sizes which ranges from 1 to 5 based on uniform distribution
+#We then use the result of sample() as the "times" parameter of rep() to assign household ID to each person
 #After repeating, the result may be more than 1000 since sizes are random between 1 and 5.We only keep the first 1000 people.
 
 #Then we move to construct a function get.net(beta,h,nc) to show the possible social contact network among individuals in the population.
-#get.net(beta,h,nc) takes the "sociability" parameter vector "beta" (length of "beta" should be n), the household belonging vector "h" 
-#and the average number of contacts per person "nc" (here we set nc to 15) as inputs.
+#get.net(beta,h,nc) takes the "sociability" parameter vector "beta", the household belonging vector "h" and the average number of 
+#contacts per person "nc" (here we set nc to 15) as inputs.
 #get.net(beta,h,nc) will return a list that indicates the indices of the regular (non-household) contacts of each person.
 #the probability of having a link between person i and person j is calculated by "nc*beta[i]*beta[j]/((mean of beta)^2*(n-1))".
 get.net <- function(beta,h,nc = 15){
@@ -86,28 +88,28 @@ get.net <- function(beta,h,nc = 15){
   #use t() to transpose the upper triangle of P and further derive the full matrix R
   R<-P+t(P)
   
-  #looping through every row of R, we can find the indices of value 1 (i.e. the regular contacts of each person) by using which() and save the results to the empty list "l".
+  #looping through every row of R, we can find the indices of value 1 (i.e. the regular contacts of each person) by using which()
   for (m in 1:n){
     l[[m]]<-c(which(R[m,]==1))
   }
   
-  #return list "l"---the ith element of which is a vector of the indices of the regular (non-household) contacts of person i; "integer(0)" means this person has no contact.
+  #return list "l"---the ith element of which is a vector of the indices of the regular (non-household) contacts of person i; 
+  # "integer(0)" means this person has no contact.
   return(l)
 }
 
 
-
 # nseir function:
 # Arguments:
-#   beta      - sociability parameter for each person
-#   h         - household ID for each person
-#   alink     - list of contact indices for each person
-#   alpha     - infection probabilities [household, contacts, random mixing]
-#   delta     - daily probability E->I (default 0.2)
-#   gamma     - daily probability I->R (default 0.4)
-#   nc        - average contacts per person (default 15)
-#   nt        - days to simulate (default 100)
-#   pinf      - initial infection proportion (default 0.005)
+#   beta   - sociability parameter for each person
+#   h      - household ID for each person
+#   alink  - list of contact indices for each person
+#   alpha  - infection probabilities [household, contacts, random mixing]
+#   gamma  - daily probability E->I (default 0.2)
+#   delta  - daily probability I->R (default 0.4)
+#   nc     - average contacts per person (default 15)
+#   nt     - days to simulate (default 100)
+#   pinf   - initial infection proportion (default 0.005)
 #
 # Returns:
 #   List of daily counts: S, E, I, R, and time vector t
@@ -156,8 +158,8 @@ nseir <- function(beta,h,alink,alpha=c(.1,.01,.01),
     new_state <- state
     
     # state transitions using logical indexing
-    new_state[state == 2 & u < delta] <- 3   # E -> I
-    new_state[state == 3 & u < gamma] <- 4   # I -> R
+    new_state[state == 2 & u < gamma] <- 3   # E -> I
+    new_state[state == 3 & u < delta] <- 4   # I -> R
     
     infected_idx <- which(state == 3)
     i_idx <- 1
@@ -181,7 +183,6 @@ nseir <- function(beta,h,alink,alpha=c(.1,.01,.01),
       contacts_i <- alink[[i]]
       
       if (length(contacts_i) > 0) {
-        u_c <- runif(length(contacts_i))
         susceptible_contacts <- contacts_i[state[contacts_i] == 1]
         if (length(susceptible_contacts) > 0) {
           u_c_sub <- runif(length(susceptible_contacts))
@@ -204,6 +205,85 @@ nseir <- function(beta,h,alink,alpha=c(.1,.01,.01),
   }
   return(list(S = S, E = E, I = I, R = R, t = 1:nt))
 }
+
+#Visualize the SEIR epidemic simulation :
+#show the distribution of beta: indicate how socially active different people are
+#show the time evolution of the epidemic: indicate how the numbers of each status change over time
+#compare four versions of SEIR model 
+
+#generate one random number between 0 and 1 for each person
+beta <- runif(n, 0, 1)
+# generate the list that gives the indices of ith regular contacts
+alink <- get.net(beta, h, nc = 15)
+# generate a list containing time series vectors for S, E, I, R, t 
+epi <- nseir(beta, h, alink)
+
+# Full model
+epi_full <- nseir(beta, h, alink, alpha = c(0.1, 0.01, 0.01))
+
+# only Random-mixing
+epi_random <- nseir(beta, h, alink, alpha = c(0, 0, 0.04))
+
+# full model with Constant beta
+beta_const <- rep(mean(beta), n)
+epi_const <- nseir(beta_const, h, alink, alpha = c(0.1, 0.01, 0.01))
+
+# Constant bet + Random mixing
+epi_const_random <- nseir(beta_const, h, alink, alpha = c(0, 0, 0.04))
+
+#add the sociability vector beta into the result list to draw the histogram 
+epi$beta <- beta 
+
+epi_full$beta <- beta
+epi_random$beta <- beta
+epi_const$beta <- beta_const
+epi_const_random$beta <- beta_const
+
+plot_nseir<- function(epi, main = "SEIR epidemic dynamics") {
+  #first set up the plotting window
+  #par(mfrow = c(1, 2), mar = c(4, 4, 2, 1))
+  
+  #left panel is the histogram of the sociability distribution beta
+  #in this plot, flat histogram represents relatively mixed sociability
+  #narrow histogram indicates relatively similar sociability
+  hist(epi$beta,
+       breaks = 20, col = "skyblue",#number of histogram bins and the color
+       xlab = expression(beta),#x-axis
+       main = "Distribution of sociability (β)",#title
+       border = "white")#remove bar borders
+  box()#draw box around the plot
+  
+  #right panel: SEIR time series dynamics
+  #This plot shows how the epidemic evolves in the population( with the number of S, E, I, R over the time period)
+  ymax <- max(epi$S, epi$E, epi$I, epi$R)
+  #first plot the curve for S
+  plot(epi$t, epi$S, type = "l", lwd = 2, col = "black",
+       ylim = c(0, ymax), xlab = "Day", ylab = "Number of individuals",
+       main = main)
+  #add E, I, R into the plot with different colors
+  lines(epi$t, epi$E, lwd = 2, col = "blue")
+  lines(epi$t, epi$I, lwd = 2, col = "red")
+  lines(epi$t, epi$R, lwd = 2, col = "darkgreen")
+  
+  legend("right",
+         legend = c("S (Susceptible)", "E (Exposed)",
+                    "I (Infectious)", "R (Recovered)"),
+         col = c("black", "blue", "red", "darkgreen"),
+         lwd = 2, bty = "n")
+}
+plot_nseir(epi)
+#plot 4 scenarios next to each other
+par(mfcol = c(2, 4), mar = c(4, 4, 2, 1))  
+plot_nseir(epi_full, main = "1. Full model")
+plot_nseir(epi_random, main = "2. Random mixing only")
+plot_nseir(epi_const, main = "3. Constant β, structured")
+plot_nseir(epi_const_random, main = "4. Constant β + random mixing")
+
+#Conclusion:
+#Comparing model 1 with model 2, model 3 with model 4, the inclusion of household and network structure slow down the spread of infection. 
+#Households and network structure separate people in groups that limiting the opportunity for the epidemic to spread.
+#For random mixing, anyone in the population can be contacted by an infectious person, so the transmission is faster, which increase the epidemic peak.
+#So considering househode and network structure would make predicted epidemic grows slower with smaller epidemic peak than considering only random mixing.
 
 
 
