@@ -1,3 +1,4 @@
+# Zixuan Qiu s2777279: create a function 'build_designs()' to evaluate X, X tilde and S
 # getwd()
 # setwd("C:/Users/cheryl/Desktop/PG-Study/Extended Statistical Programming/Assignment/project3")
 # Function to build design matrices for COVID-19 death deconvolution model
